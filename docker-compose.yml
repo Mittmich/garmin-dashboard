@@ -1,0 +1,20 @@
+version: '3'
+services:
+  flask-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8050:8050
+    environment:
+      - DASH_USER=test
+      - DASH_PW=test
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx-server/Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+      - flask-app
