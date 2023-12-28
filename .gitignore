@@ -1,0 +1,9 @@
+*.pyc
+__pycache__/
+venv/
+*.py[cod]
+
+playground/
+config.json
+.env
+.garmin/
