@@ -7,8 +7,8 @@ services:
     ports:
       - 8050:8050
     environment:
-      - DASH_USER=test
-      - DASH_PW=test
+      - DASH_USER=${DASH_USER}
+      - DASH_PW=${DASH_PW}
 
   nginx:
     build:
