@@ -3,13 +3,17 @@ from dash import Input, Output, callback, State
 import datetime
 from garth import Client as GarthClient
 from garth.exc import GarthHTTPError
-from functools import lru_cache
 import dash_core_components as dcc
 import dash_html_components as html
+import os
 import pandas as pd
 from datetime import date
 from dash.dependencies import Input, Output
+from dotenv import load_dotenv
+import dash_auth
 
+
+load_dotenv()
 
 ACTIVITY_CACHE = {
 
@@ -249,7 +253,12 @@ def generate_training_time_chart(df):
 
 
 app = dash.Dash(__name__, suppress_callback_exceptions = True)
-
+auth = dash_auth.BasicAuth(
+    app,
+    {
+        os.getenv("DASH_USER"): os.getenv("DASH_PW")
+    }
+)
 
 # handlers
 
