@@ -55,7 +55,8 @@ def get_htr_time_in_zones(client,user_name, activities):
         hrt = pd.DataFrame(get_acitvity_hrt(client,user_name, actid))
         output.append(hrt.assign(activity_date=activity["startTimeLocal"],
                                   activity_id=actid,
-                                  duration_h=activity["duration"]/(60*60)))
+                                  duration_h=activity["duration"]/(60*60),
+                                  distance_km=activity["distance"]/(1000)))
     return output
 
 
@@ -251,6 +252,31 @@ def generate_training_time_chart(df):
         ),
     ]
 
+def generate_training_distance_chart(df):
+    return [
+        html.H5("Training distance"),
+        dcc.Graph(
+            id="training-distance-chart",
+            figure={
+                "data": [
+                    {
+                        "x": df["activity_date"],
+                        "y": df["distance_km"],
+                        "type": "bar",
+                        "marker": {"color": "#0074D9"},
+                    }
+                ],
+                "layout": {
+                    "title": {"text": "Training distance"},
+                    "height": 500,
+                    "padding": 150,
+                    "xaxis": {"title": "Date"},
+                    "yaxis": {"title": "Training distance [km]"},
+                },
+            }
+        ),
+    ]
+
 
 app = dash.Dash(__name__, suppress_callback_exceptions = True)
 auth = dash_auth.BasicAuth(
@@ -314,6 +340,7 @@ def on_date_change(start_date, end_date,account_value ,store_data):
                 "activity_date": [start_date] * 5,
                 "activity_id": ["1"] * 5,
                 "duration_h": [0] * 5,
+                "distance_km": [0] * 5,
             }
         )
     else:
@@ -328,11 +355,14 @@ def on_date_change(start_date, end_date,account_value ,store_data):
     activity_count = df_w_date.groupby([pd.Grouper(key='activity_date', freq='7d')]).activity_id.nunique().rename("activity_count").reset_index()
     # create training time
     training_time = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq='7d')]).duration_h.sum().reset_index()
+    # create training distance
+    training_distance = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq='7d')]).distance_km.sum().reset_index()
     return (
         generate_bar_chart(averages, len(hf_data)) 
         + generate_stacked_bars(aggregations_by_date)
         + generate_activity_count_chart(activity_count)
         + generate_training_time_chart(training_time)
+        + generate_training_distance_chart(training_distance)
     )
 
 @callback(
@@ -385,4 +415,4 @@ app.layout = html.Div(
 )
 
 if __name__ == "__main__":
-    app.run_server(host='0.0.0.0', debug=False)
+    app.run_server(host='0.0.0.0', debug=True)
