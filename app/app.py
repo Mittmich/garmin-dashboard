@@ -9,6 +9,7 @@ import os
 import pandas as pd
 from datetime import date
 from dash.dependencies import Input, Output
+import dash_daq as daq
 from dotenv import load_dotenv
 import dash_auth
 
@@ -99,11 +100,18 @@ def generate_control_card():
                     html.Div(id='account-message',style={'margin':'5px'}, children="")
                 ],
             ),
-            html.P("Select account"),
+            html.P("Select account", style={'margin':'5px'}),
             dcc.Dropdown(
                 id="dropdown",
                 options=[
                 ],
+            ),
+            html.P('Settings'),
+            html.Div(
+                id="settings",
+                children=[
+                    *generate_toggle()
+                ]
             ),
         ],
     )
@@ -117,6 +125,15 @@ def generate_date_selector():
                     start_date=date.today() - datetime.timedelta(days=30),
                     end_date=date.today(),
                 )]
+
+def generate_toggle():
+    return [
+            daq.BooleanSwitch(
+                id='my-toggle-switch',
+                label='Calendar weeks',
+                on=False,
+            )
+        ]
 
 
 def _get_training_string(n_trainings):
@@ -319,11 +336,15 @@ def on_click(n_clicks, username, password, data):
 
 @callback(
     Output("bar-chart-card", "children"),
-    [Input("date-range-selector", "start_date"), Input("date-range-selector", "end_date"), Input("dropdown", "value")],
+    [Input("date-range-selector", "start_date"),
+     Input("date-range-selector", "end_date"),
+     Input("dropdown", "value"),
+     Input('my-toggle-switch', 'on')
+     ],
     [State("garmin_store", "data")],
     prevent_initial_call=True,
 )
-def on_date_change(start_date, end_date,account_value ,store_data):
+def on_date_change(start_date, end_date,account_value ,use_calendar_weeks,store_data):
     # check wheter logged in
     if account_value is None:
         return []
@@ -346,17 +367,22 @@ def on_date_change(start_date, end_date,account_value ,store_data):
     else:
         df = pd.concat(hf_data)
     averages = df.groupby("zoneNumber").secsInZone.sum().div(df.secsInZone.sum()).mul(100).round(2).reset_index()
+    # decide on calendar weeks
+    if use_calendar_weeks:
+        rounding_string = "W-MON"
+    else:
+        rounding_string = "7d"
     # create stacked
     df_w_date = df.assign(activity_date=pd.to_datetime(df.activity_date))
-    aggregations_by_date = df_w_date.groupby([pd.Grouper(key='activity_date', freq='7d'), "zoneNumber"]).secsInZone.sum().div(
-    df_w_date.groupby([pd.Grouper(key='activity_date', freq='7d')]).secsInZone.sum()
+    aggregations_by_date = df_w_date.groupby([pd.Grouper(key='activity_date', freq=rounding_string, label='left'), "zoneNumber"]).secsInZone.sum().div(
+    df_w_date.groupby([pd.Grouper(key='activity_date', freq=rounding_string, label='left')]).secsInZone.sum()
     ).mul(100).unstack().reset_index()
     # create activity count
-    activity_count = df_w_date.groupby([pd.Grouper(key='activity_date', freq='7d')]).activity_id.nunique().rename("activity_count").reset_index()
+    activity_count = df_w_date.groupby([pd.Grouper(key='activity_date', freq=rounding_string, label='left')]).activity_id.nunique().rename("activity_count").reset_index()
     # create training time
-    training_time = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq='7d')]).duration_h.sum().reset_index()
+    training_time = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq=rounding_string, label='left')]).duration_h.sum().reset_index()
     # create training distance
-    training_distance = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq='7d')]).distance_km.sum().reset_index()
+    training_distance = df_w_date.drop_duplicates(subset="activity_id").groupby([pd.Grouper(key='activity_date', freq=rounding_string, label='left')]).distance_km.sum().reset_index()
     return (
         generate_bar_chart(averages, len(hf_data)) 
         + generate_stacked_bars(aggregations_by_date)

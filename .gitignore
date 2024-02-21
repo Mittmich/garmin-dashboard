@@ -8,3 +8,4 @@ config.json
 .env
 .garmin/
 nginx-server/certificates/
+local.json
