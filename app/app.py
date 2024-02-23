@@ -131,7 +131,7 @@ def generate_toggle():
             daq.BooleanSwitch(
                 id='my-toggle-switch',
                 label='Calendar weeks',
-                on=False,
+                on=True,
             )
         ]
 
