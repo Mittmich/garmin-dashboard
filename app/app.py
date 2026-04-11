@@ -17,13 +17,8 @@ import plotly.graph_objects as go
 
 load_dotenv()
 
-ACTIVITY_CACHE = {
-
-}
-
-DETAIL_CACHE = {
-
-}
+ACTIVITY_CACHE = {}
+DETAIL_CACHE = {}
 
 
 def get_acitvity_hrt(client,user_name, activity_id):
@@ -445,7 +440,7 @@ def generate_pace_profile(df):
         mode="markers+lines",
         marker=dict(
             color=plot_df["pace_min_km"],
-            colorscale="RdYlGn",
+            colorscale="RdYlGn_r",
             colorbar=dict(title="Pace<br>(min/km)"),
             size=5,
         ),
